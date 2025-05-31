@@ -1,0 +1,78 @@
+---
+- name: Installation de Jenkins avec Nginx et HTTPS
+  hosts: admin-master
+  become: true
+
+  tasks:
+    - name: Ajouter la clé Jenkins
+      apt_key:
+        url: https://pkg.jenkins.io/debian/jenkins.io.key
+        state: present
+
+    - name: Ajouter le dépôt Jenkins
+      apt_repository:
+        repo: 'deb https://pkg.jenkins.io/debian binary/'
+        state: present
+
+    - name: Installer Java, Jenkins et Nginx
+      apt:
+        name:
+          - openjdk-17-jdk
+          - jenkins
+          - nginx
+        state: present
+        update_cache: true
+
+    - name: Démarrer et activer Jenkins
+      systemd:
+        name: jenkins
+        enabled: true
+        state: started
+
+    - name: Ouvrir le port 8080 en local uniquement
+      lineinfile:
+        path: /lib/systemd/system/jenkins.service
+        regexp: '^Environment="JENKINS_PORT='
+        line: 'Environment="JENKINS_PORT=127.0.0.1:8080"'
+        state: present
+      notify: Reload Jenkins
+
+    - name: Configurer Nginx comme reverse proxy
+      copy:
+        dest: /etc/nginx/sites-available/jenkins
+        content: |
+          server {
+              listen 80;
+              server_name jenkins.<ton-domaine>.com;
+
+              location / {
+                  proxy_pass         http://127.0.0.1:8080;
+                  proxy_set_header   Host $host;
+                  proxy_set_header   X-Real-IP $remote_addr;
+                  proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+              }
+          }
+
+    - name: Activer le site Jenkins
+      file:
+        src: /etc/nginx/sites-available/jenkins
+        dest: /etc/nginx/sites-enabled/jenkins
+        state: link
+        force: yes
+
+    - name: Supprimer le site Nginx par défaut
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Redémarrer Nginx
+      systemd:
+        name: nginx
+        state: restarted
+
+  handlers:
+    - name: Reload Jenkins
+      systemd:
+        daemon_reload: yes
+        name: jenkins
+        state: restarted
