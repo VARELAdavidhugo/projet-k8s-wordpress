@@ -1,0 +1,19 @@
+# Fichiers système
+.bash_history
+.bashrc
+.profile
+.lesshst
+.viminfo
+.sudo_as_admin_successful
+
+# Clés SSH (jamais dans un dépôt !)
+.ssh/
+
+# Fichiers Kubernetes temporaires
+.kube/
+
+# Cache
+.cache/
+
+# Logs
+*.log
