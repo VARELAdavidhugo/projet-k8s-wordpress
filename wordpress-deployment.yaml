@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress
+  template:
+    metadata:
+      labels:
+        app: wordpress
+    spec:
+      initContainers:
+      - name: wait-for-mysql
+        image: busybox
+        command: ['sh', '-c', 'until nc -z -v -w30 mysql 3306; do echo "Waiting for MySQL..."; sleep 5; done']
+      containers:
+      - name: wordpress
+        image: wordpress:latest
+        ports:
+        - containerPort: 80
+        envFrom:
+        - configMapRef:
+            name: wordpress-config
+        - secretRef:
+            name: mysql-pass
+        volumeMounts:
+        - name: wordpress-pv-storage
+          mountPath: /var/www/html/wp-content
+      volumes:
+      - name: wordpress-pv-storage
+        persistentVolumeClaim:
+          claimName: pvc-nfs-kubedata

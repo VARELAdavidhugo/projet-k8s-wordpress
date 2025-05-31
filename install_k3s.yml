@@ -1,0 +1,17 @@
+# install_k3s.yml
+- name: Installer K3s sur le master
+  hosts: master
+  become: true
+
+  tasks:
+    - name: Télécharger et exécuter le script K3s pour le master
+      shell: |
+        curl -sfL https://get.k3s.io | sh -
+      args:
+        executable: /bin/bash
+
+    - name: Attendre que le service k3s soit actif
+      systemd:
+        name: k3s
+        state: started
+        enabled: true

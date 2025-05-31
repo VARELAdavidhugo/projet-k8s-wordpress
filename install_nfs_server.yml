@@ -1,0 +1,27 @@
+---
+- name: Installer et configurer un serveur NFS
+  hosts: 158.23.84.140
+  become: true
+  tasks:
+    - name: Installer le paquet NFS
+      apt:
+        name: nfs-kernel-server
+        state: present
+        update_cache: yes
+
+    - name: Créer le répertoire exporté
+      file:
+        path: /srv/nfs/kubedata
+        state: directory
+        mode: '0777'
+
+    - name: Configurer l'export NFS
+      blockinfile:
+        path: /etc/exports
+        block: |
+          /srv/nfs/kubedata *(rw,sync,no_subtree_check,no_root_squash)
+
+    - name: Redémarrer le service NFS
+      service:
+        name: nfs-kernel-server
+        state: restarted
